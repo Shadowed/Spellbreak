@@ -1,0 +1,3 @@
+SpellbreakLocals = {
+	["General"] = "General",
+}

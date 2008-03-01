@@ -1,0 +1,24 @@
+## Interface: 20400
+## Title: Spell break
+## Notes: Tracks enemy school lockouts
+## Author: Mayen
+## Version: $Revision: 599 $
+## SavedVariables: SpellbreakDB
+## OptionalDeps: OptionHouse, HousingAuthority, Ace3, GTB
+
+libs\LibStub-1.0\LibStub-1.0.xml
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\OptionHouse.lua
+libs\HousingAuthority.lua
+libs\GT.lua
+
+localization.enUS.lua
+localization.deDE.lua
+localization.frFR.lua
+
+combat.lua
+Spellbreak.lua
+config.lua
