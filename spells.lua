@@ -22,11 +22,10 @@ SpellbreakLockouts = {
 	[28730] = {removal = true, lockOut = 2, school = 0},
 	
 	-- Deadly Throw (Rogue Arena/Honor Gloves)
-
-	--[26679] = 3,
-	
+	[32747] = 3,
 
 	-- Maim (Vengeful Gladiator's Wyrmhide Gloves)
+	-- Unsure what the spellID is
 	--[22570] = 3,
 	
 	-- Silence

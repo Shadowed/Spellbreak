@@ -79,7 +79,9 @@ function Spellbreak:Reload()
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
 	
-
+	self.anchor:SetWidth(self.db.profile.width)
+	self.anchor:SetScale(self.db.profile.scale)
+	
 	if( self.db.profile.locked ) then
 		self.anchor:SetAlpha(0)
 		self.anchor:EnableMouse(false)
@@ -89,6 +91,12 @@ function Spellbreak:Reload()
 	end
 end
 
+local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER or 0x00000400
+local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY or 0x00000010
+local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE or 0x00000001
+local COMBATLOG_OBJECT_AFFILIATION_PARTY = COMBATLOG_OBJECT_AFFILIATION_PARTY or 0x00000002
+local COMBATLOG_OBJECT_AFFILIATION_RAID = COMBATLOG_OBJECT_AFFILIATION_RAID or 0x00000004
+local COMBATLOG_OBJECT_REACTION_HOSTILE	= COMBATLOG_OBJECT_REACTION_HOSTILE or 0x00000040
 local GROUP_AFFILIATION = bit.bor(COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_TYPE_PLAYER, COMBATLOG_OBJECT_AFFILIATION_MINE, COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_AFFILIATION_RAID)
 
 -- Need to clean this up a bit
@@ -104,7 +112,7 @@ function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sou
 	elseif( eventType == "SPELL_INTERRUPT" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
 		local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSpellSchool = ...
 		self:ProcessLockout(eventType, spellID, spellName, extraSpellSchool, destGUID, destName)
-
+	
 	-- Check if a silence faded
 	elseif( eventType == "SPELL_AURA_REMOVED" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
 		local spellID, spellName, spellSchool, auraType = ...

@@ -20,7 +20,6 @@ localization.enUS.lua
 localization.deDE.lua
 localization.frFR.lua
 
-combat.lua
 spells.lua
 Spellbreak.lua
 config.lua
