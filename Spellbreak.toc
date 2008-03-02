@@ -13,12 +13,14 @@ libs\AceAddon-3.0\AceAddon-3.0.xml
 libs\AceEvent-3.0\AceEvent-3.0.xml
 libs\OptionHouse.lua
 libs\HousingAuthority.lua
-libs\GT.lua
+libs\GTB.lua
+libs\LibSharedMedia-2.0.lua
 
 localization.enUS.lua
 localization.deDE.lua
 localization.frFR.lua
 
 combat.lua
+spells.lua
 Spellbreak.lua
 config.lua

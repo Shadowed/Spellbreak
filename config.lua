@@ -8,21 +8,39 @@ local L = SpellbreakLocals
 local OptionHouse
 local HouseAuthority
 local OHObj
+local SML
 
 function Config:OnInitialize()
 	-- Open the OH UI
 	SLASH_SPELLBREAK1 = "/spellbreak"
 	SLASH_SPELLBREAK2 = "/spellbreaker"
 	SlashCmdList["SPELLBREAK"] = function(msg)
-		OptionHouse:Open("Spellbreak")
+		if( msg == "test" ) then
+			Spellbreak.GTBGroup:RegisterBar("test1", 5, UnitName("player"), Spellbreak.schools[2].icon)
+			Spellbreak.GTBGroup:RegisterBar("test2", 10, UnitName("player"), Spellbreak.schools[4].icon)
+			Spellbreak.GTBGroup:RegisterBar("test3", 15, UnitName("player"), Spellbreak.schools[8].icon)
+		else
+			OptionHouse:Open("Spellbreak")
+		end
 	end
 		
 	-- Register with OptionHouse
 	OptionHouse = LibStub("OptionHouse-1.1")
 	HouseAuthority = LibStub("HousingAuthority-1.2")
 	
-	OHObj = OptionHouse:RegisterAddOn("Afflicted", nil, "Mayen", "r" .. max(tonumber(string.match("$Revision: 599 $", "(%d+)") or 1), Afflicted.revision))
+	OHObj = OptionHouse:RegisterAddOn("Spellbreak", nil, "Mayen", "r" .. max(tonumber(string.match("$Revision: 599 $", "(%d+)") or 1), Spellbreak.revision))
 	OHObj:RegisterCategory(L["General"], self, "CreateUI", nil, 1)
+
+	-- Register our default list of textures with SML
+	SML = Spellbreak.SML
+	SML:Register(SML.MediaType.STATUSBAR, "BantoBar", "Interface\\Addons\\Spellbreak\\images\\banto")
+	SML:Register(SML.MediaType.STATUSBAR, "Smooth",   "Interface\\Addons\\Spellbreak\\images\\smooth")
+	SML:Register(SML.MediaType.STATUSBAR, "Perl",     "Interface\\Addons\\Spellbreak\\images\\perl")
+	SML:Register(SML.MediaType.STATUSBAR, "Glaze",    "Interface\\Addons\\Spellbreak\\images\\glaze")
+	SML:Register(SML.MediaType.STATUSBAR, "Charcoal", "Interface\\Addons\\Spellbreak\\images\\Charcoal")
+	SML:Register(SML.MediaType.STATUSBAR, "Otravi",   "Interface\\Addons\\Spellbreak\\images\\otravi")
+	SML:Register(SML.MediaType.STATUSBAR, "Striped",  "Interface\\Addons\\Spellbreak\\images\\striped")
+	SML:Register(SML.MediaType.STATUSBAR, "LiteStep", "Interface\\Addons\\Spellbreak\\images\\LiteStep")
 end
 
 -- GUI
@@ -39,6 +57,11 @@ function Config:Reload()
 end
 
 function Config:CreateUI()
+	local textures = {}
+	for _, name in pairs(SML:List(SML.MediaType.STATUSBAR)) do
+		table.insert(textures, {name, name})
+	end
+
 	local config = {
 	--[[
 		{ group = L["General"], type = "groupOrder", order = 1 },

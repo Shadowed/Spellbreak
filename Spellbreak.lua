@@ -1,19 +1,47 @@
 Spellbreak = LibStub("AceAddon-3.0"):NewAddon("Spellbreak", "AceEvent-3.0")
 
-local L = Spellbreak
+local L = SpellbreakLocals
 
+local SML
+local GTBLib
+local GTBGroup
 local instanceType
-local spellSchools = {[1] = L["Physical"], [2] = L["Holy"], [4] = L["Fire"], [8] = L["Nature"], [16] = L["Frost"], [32] = L["Shadow"], [64] = L["Arcane"]}
+
+local lockoutTrack = {}
+local lockoutQuickMap = {}
 
 function Spellbreak:OnInitialize()
 	self.defaults = {
 		profile = {
+			locked = true,
+			scale = 1.0,
+			width = 180,
+			texture = "BantoBar",
 			inside = {["arena"] = true, ["pvp"] = true},
+			announce = true,
+			announceDest = "1",
+			announceColor = { r = 1, g = 1, b = 1 },
 		},
 	}
 
 	self.db = LibStub:GetLibrary("AceDB-3.0"):New("SpellbreakDB", self.defaults)
 	self.revision = tonumber(string.match("$Revision: 599 $", "(%d+)") or 1)
+
+	self.spells = SpellbreakLockouts
+	self.schools = SpellbreakSchools
+
+	SML = LibStub:GetLibrary("LibSharedMedia-2.0")
+	
+	GTBLib = LibStub:GetLibrary("GTB-Alpha0.1")
+	GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
+	GTBGroup:RegisterOnFade(self, "OnBarFade")
+	GTBGroup:SetScale(self.db.profile.scale)
+	GTBGroup:SetWidth(self.db.profile.width)
+	
+	self:CreateAnchor()
+
+	self.SML = SML
+	self.GTBGroup = GTBGroup
 
 	-- Monitor for zone change
 	self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
@@ -47,24 +75,134 @@ function Spellbreak:Reload()
 	if( self.db.profile.inside[type] ) then
 		self:OnEnable()
 	end
+	
+	GTBGroup:SetScale(self.db.profile.scale)
+	GTBGroup:SetWidth(self.db.profile.width)
+	
+
+	if( self.db.profile.locked ) then
+		self.anchor:SetAlpha(0)
+		self.anchor:EnableMouse(false)
+	else
+		self.anchor:SetAlpha(1)
+		self.anchor:EnableMouse(true)
+	end
 end
 
 local GROUP_AFFILIATION = bit.bor(COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_TYPE_PLAYER, COMBATLOG_OBJECT_AFFILIATION_MINE, COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_AFFILIATION_RAID)
 
 -- Need to clean this up a bit
 function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags, ...)			
-	local isDestEnemy = (bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE)
-	local isDestGroup = (bit.band(destFlags, GROUP_AFFILIATION) > 0)
-	local isSourceEnemy = (bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE)
-	local isSourceGroup = (bit.band(sourceFlags, GROUP_AFFILIATION) > 0)
-		
-	-- Enemy gained a debuff
-	if( eventType == "SPELL_AURA_APPLIED" and auraType == "DEBUFF" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
+	-- Check if an enemy gained a silence
+	if( eventType == "SPELL_AURA_APPLIED" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
 		local spellID, spellName, spellSchool, auraType = ...
-	
-	-- We interrupted someone, or someone in our group did
-	elseif( eventType == "SPELL_INTERRUPT" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and it.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
+		if( auraType == "DEBUFF" ) then
+			self:ProcessLockout(eventType, spellID, spellName, spellSchool, destGUID, destName)
+		end
+		
+	-- Check if someone locked out a tree
+	elseif( eventType == "SPELL_INTERRUPT" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
 		local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSpellSchool = ...
+		self:ProcessLockout(eventType, spellID, spellName, extraSpellSchool, destGUID, destName)
+
+	-- Check if a silence faded
+	elseif( eventType == "SPELL_AURA_REMOVED" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
+		local spellID, spellName, spellSchool, auraType = ...
+		if( auraType == "DEBUFF" ) then
+			self:LockoutFaded(eventType, spellID, spellName, destGUID, destName)
+		end
+		
+	-- Check if a silence was dispelled
+	elseif( eventType == "SPELL_AURA_DISPELLED" and bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
+		local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSpellSchool, auraType = ...
+		if( auraType == "DEBUFF" ) then
+			self:LockoutFaded(eventType, extraSpellID, extraSpellName, destGUID, destName)
+		end
+	end
+end
+
+function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, destGUID, destName)
+	local spell = self.spells[spellID]
+	if( not spell ) then
+		return
+	end
+	
+	-- First figure out the seconds in the lockout, along with the icon to use for the school locked
+	local seconds, school, endTime
+	if( type(spell) == "number" ) then
+		school = self.schools[lockedSchool]
+		seconds = spell
+		endTime = GetTime() + spell
+	else
+		if( spell.school ) then
+			school = self.schools[spell.school]
+			lockedSchool = spell.school
+		else
+			school = self.schools[lockedSchool]
+		end
+
+		seconds = spell.lockOut
+		endTime = GetTime() + seconds
+	end
+	
+	local id = destGUID .. lockedSchool
+	if( not lockoutTrack[id] ) then
+		lockoutTrack[id] = {endTime = 0}
+	end
+	
+	-- If we already have a lockout for this school, and the time left is longer then this request, then reject it
+	local currentLock = lockoutTrack[id]
+	if( currentLock and currentLock.endTime > endTime ) then
+
+		return
+	end
+	
+	lockoutTrack[id].endTime = endTime
+	lockoutTrack[id].spellID = spellID
+	lockoutTrack[id].spellName = spellName
+	lockoutTrack[id].lockedSchool = lockedSchool
+	lockoutTrack[id].destName = destName
+	
+	lockoutQuickMap[destGUID .. spellID] = id
+	
+	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
+	GTBGroup:RegisterBar(id, seconds, destName, school.icon)
+	
+	if( self.db.profile.announce ) then
+		self:SendMessage(string.format(L["LOCKED %s %s Spells (%d seconds)"], destName, school.text, seconds), self.db.profile.announceDest, self.db.profile.announceColor)
+	end
+end
+
+function Spellbreak:LockoutFaded(eventType, spellID, spellName, destGUID, destName)
+	local id = lockoutQuickMap[destGUID .. spellID]
+	if( not self.spells[spellID] or not id ) then
+
+		return
+	end
+	
+	local currentLock = lockoutTrack[id]
+
+	if( not currentLock ) then
+		return
+	end
+	
+	GTBGroup:UnregisterBar(id)
+	if( self.db.profile.announce ) then
+		self:SendMessage(string.format(L["UNLOCKED %s %s Spells"], destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
+	end
+end
+
+function Spellbreak:OnBarFade(barID)
+	if( not barID ) then
+		--ChatFrame1:AddMessage("NO FADE ID FOUND")
+		return
+
+	end
+	
+
+	local currentLock = lockoutTrack[barID]
+	if( currentLock and self.db.profile.announce ) then
+		self:SendMessage(string.format(L["UNLOCKED %s %s Spells"], currentLock.destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
 	end
 end
 
@@ -94,30 +232,7 @@ function Spellbreak:StripServer(text)
 	return name
 end
 
--- See if we should wrap an icon stuff around this
-function Spellbreak:WrapIcon(msg, dest, spellID)
-	if( not self.db.profile.showIcons or not spellID ) then
-		return msg
-	end
-	
-	-- Make sure we have a valid icon
-	local icon = select(3, GetSpellInfo(spellID))
-	if( not icon ) then
-		return msg
-	end
-	
-	-- CT or RWFrame can be bigger due to more room
-	local size = 12
-	if( dest == "ct" ) then
-		size = 18	
-	elseif( dest == "rwframe" ) then
-		size = select(2, self.alertFrame:GetFont())
-	end
-
-	return string.format("|T%s:%d:%d:0:-1|t %s", icon, size, size, msg)
-end
-
-function Spellbreak:SendMessage(msg, dest, color, spellID)
+function Spellbreak:SendMessage(msg, dest, color)
 	-- We're ungrouped, so redirect it to RWFrame
 	if( dest == "rw" and GetNumRaidMembers() == 0 and GetNumPartyMembers() == 0 ) then
 		dest = "1"
@@ -132,19 +247,19 @@ function Spellbreak:SendMessage(msg, dest, color, spellID)
 	-- Chat frame
 	if( tonumber(dest) ) then
 		local frame = getglobal("ChatFrame" .. dest) or DEFAULT_CHAT_FRAME
-		frame:AddMessage("|cff33ff99Spellbreak|r|cffffffff:|r " .. self:WrapIcon(msg, dest, spellID), color.r, color.g, color.b)
+		frame:AddMessage("|cff33ff99Spellbreak|r|cffffffff:|r " .. msg, color.r, color.g, color.b)
 	-- Raid warning announcement to raid/party
 	elseif( dest == "rw" ) then
 		SendChatMessage(msg, "RAID_WARNING")
 	-- Raid warning frame, will not send it out to the party
 	elseif( dest == "rwframe" ) then
-		self.alertFrame:AddMessage(self:WrapIcon(msg, dest, spellID), color.r, color.g, color.b)
+		self.alertFrame:AddMessage(msg, color.r, color.g, color.b)
 	-- Party chat
 	elseif( dest == "party" ) then
 		SendChatMessage(msg, "PARTY")
 	-- Combat text
 	elseif( dest == "ct" ) then
-		self:CombatText(self:WrapIcon(msg, dest, spellID), color)
+		self:CombatText(msg, color)
 	end
 end
 
@@ -171,4 +286,68 @@ end
 
 function Spellbreak:Print(msg)
 	DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99Spellbreak|r: " .. msg)
+end
+
+
+function Spellbreak:CreateAnchor()
+	local backdrop = {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeSize = 0.6,
+			insets = {left = 1, right = 1, top = 1, bottom = 1}}
+
+	-- Create our anchor for moving the frame
+	self.anchor = CreateFrame("Frame")
+	self.anchor:SetWidth(self.db.profile.width)
+	self.anchor:SetHeight(12)
+	self.anchor:SetBackdrop(backdrop)
+	self.anchor:SetBackdropColor(0, 0, 0, 1.0)
+	self.anchor:SetBackdropBorderColor(0.75, 0.75, 0.75, 1.0)
+	self.anchor:SetClampedToScreen(true)
+	self.anchor:SetScale(self.db.profile.scale)
+	self.anchor:EnableMouse(true)
+	self.anchor:SetMovable(true)
+	self.anchor:SetScript("OnMouseDown", function(self)
+		if( not Spellbreak.db.profile.locked and IsAltKeyDown() ) then
+			self.isMoving = true
+			self:StartMoving()
+		end
+	end)
+
+	self.anchor:SetScript("OnMouseUp", function(self)
+		if( self.isMoving ) then
+			self.isMoving = nil
+			self:StopMovingOrSizing()
+			
+			local scale = self:GetEffectiveScale()
+			local x = self:GetLeft() * scale
+			local y = self:GetTop() * scale
+		
+			if( not Spellbreak.db.profile.position ) then
+				Spellbreak.db.profile.position = {}
+			end
+			
+			Spellbreak.db.profile.position.x = x
+			Spellbreak.db.profile.position.y = y
+			
+			GTBGroup:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+		end
+	end)	
+	
+	self.anchor.text = self.anchor:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	self.anchor.text:SetText(L["Spellbreak"])
+	self.anchor.text:SetPoint("CENTER", self.anchor, "CENTER")
+	
+	if( self.db.profile.position ) then
+		local scale = self.anchor:GetEffectiveScale()
+		self.anchor:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x * scale, self.db.profile.position.y * scale)
+		
+		GTBGroup:SetPoint("TOPLEFT", self.anchor, "BOTTOMLEFT", 0, 0)
+	else
+		self.anchor:SetPoint("CENTER", UIParent, "CENTER")
+	end
+	
+	-- Hide anchor if locked
+	if( self.db.profile.locked ) then
+		self.anchor:SetAlpha(0)
+		self.anchor:EnableMouse(false)
+	end
 end

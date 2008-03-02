@@ -1,5 +1,5 @@
 local major = "GTB-Alpha0.1"
-local minor = tonumber(string.match("$Revision: 308 $", "(%d+)") or 1)
+local minor = tonumber(string.match("$Revision: 405 $", "(%d+)") or 1)
 
 assert(LibStub, string.format("%s requires LibStub.", major))
 
@@ -37,7 +37,7 @@ end
 local framePool = GTB.framePool or {}
 local groups = GTB.groups or {}
 local methods = {"SetBaseColor", "EnableGradient", "SetPoint", "SetScale", "SetWidth", "SetTexture", "SetBarGrowth", "SetIconPosition", "SetTextColor",
-"SetTimerColor", "SetFadeTime", --[["SetTextOffset", "SetTimerOffset",]] "SetDisplayGroup", "RegisterBar", "UnregisterBar", "RegisterOnClick", "SetBarIcon"}
+"SetTimerColor", "SetFadeTime", "RegisterOnFade", --[["SetTextOffset", "SetTimerOffset",]] "SetDisplayGroup", "RegisterBar", "UnregisterBar", "RegisterOnClick", "SetBarIcon"}
 
 -- Internal functions for managing bars
 local function getFrame()
@@ -101,6 +101,7 @@ local function releaseFrame(frame)
 	frame.clickHandler = nil
 	frame.clickFunc = nil
 	frame.args = nil
+	frame.fadingOut = nil
 
 	-- And now readd to the frame pool
 	table.insert(framePool, frame)	
@@ -125,6 +126,17 @@ end
 local function fadeoutBar(self)
 	local group = groups[self.owner]
 	
+	if( type(group.onFadeHandler) == "table" and type(group.onFadeFunc) == "string" ) then
+		group.onFadeHandler[group.onFadeFunc](group.onFadeHandler, self.barID)			
+	elseif( type(group.onFadeFunc) == "string" ) then
+		getglobal(group.onFadeFunc)(self.barID)
+	elseif( type(group.onFadeFunc) == "function" ) then
+		group.onFadeFunc(self.barID)
+	end
+	
+	group.onFadeHandler = handler
+	group.onFadeFunc = func
+	
 	-- Don't fade at all, remove right now
 	if( group.fadeTime <= 0 ) then
 		group:UnregisterBar(self.barID)	
@@ -143,10 +155,11 @@ local function barOnUpdate(self)
 	-- Check if times ran out and that we need to start fading it out
 	self.secondsLeft = self.secondsLeft - (time - self.lastUpdate)
 	self.lastUpdate = time
-	if( self.secondsLeft <= 0 ) then
+	if( self.secondsLeft <= 0 and not self.fadingOut ) then
 		self:SetValue(0)
 		self.spark:Hide()
-
+		self.fadingOut = true
+		
 		fadeoutBar(self)
 		return
 	end
@@ -199,9 +212,13 @@ local function repositionFrames(group)
 	
 	for i, bar in pairs(group.usedBars) do
 		bar:ClearAllPoints()
-		bar:SetPoint(group.point, group.relativeFrame, group.relativePoint, group.xOff, group.yOff + (height * mod))
 		
-		height = height + group.height
+		if( i > 1 ) then
+			bar:SetPoint("TOPLEFT", group.usedBars[i - 1], "BOTTOMLEFT", 0, 0)
+		else
+			bar:SetPoint(group.point, group.relativeFrame, group.relativePoint, group.xOff, group.yOff)
+		end
+
 	end
 end
 
@@ -408,6 +425,19 @@ function GTB.SetDisplayGroup(group, name)
 	group.redirectTo = name
 end
 
+-- Associate a function to call when bars fade
+function GTB.RegisterOnFade(group, handler, func)
+	argcheck(handler, 2, "table", "function", "string")
+	argcheck(func, 2, "string", "nil")
+	
+
+	if( func ) then
+		group.onFadeHandler = handler
+		group.onFadeFunc = func
+	else
+		group.onFadeFunc = handler
+	end	
+end
 
 --------------------
 -- BAR MANAGEMENT --
