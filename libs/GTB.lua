@@ -1,4 +1,4 @@
-local major = "GTB-Alpha0.1"
+local major = "GTB-Beta1"
 local minor = tonumber(string.match("$Revision: 405 $", "(%d+)") or 1)
 
 assert(LibStub, string.format("%s requires LibStub.", major))
@@ -37,7 +37,7 @@ end
 local framePool = GTB.framePool or {}
 local groups = GTB.groups or {}
 local methods = {"SetBaseColor", "EnableGradient", "SetPoint", "SetScale", "SetWidth", "SetTexture", "SetBarGrowth", "SetIconPosition", "SetTextColor",
-"SetTimerColor", "SetFadeTime", "RegisterOnFade", --[["SetTextOffset", "SetTimerOffset",]] "SetDisplayGroup", "RegisterBar", "UnregisterBar", "RegisterOnClick", "SetBarIcon"}
+"SetTimerColor", "SetFadeTime", "RegisterOnFade", --[["SetTextOffset", "SetTimerOffset",]] "SetDisplayGroup", "GetDisplayGroup", "RegisterBar", "UnregisterBar", "SetRepeatingTimer", "UnregisterAllBars", "RegisterOnClick", "SetBarIcon"}
 
 -- Internal functions for managing bars
 local function getFrame()
@@ -156,6 +156,15 @@ local function barOnUpdate(self)
 	self.secondsLeft = self.secondsLeft - (time - self.lastUpdate)
 	self.lastUpdate = time
 	if( self.secondsLeft <= 0 and not self.fadingOut ) then
+		-- Check if it's a repeating timer
+		local bar = groups[self.groupName].bars[self.barID]
+		if( bar.repeating ) then
+			self.secondsLeft = self.startSeconds
+			self.lastUpdate = time
+			return
+		end
+		
+		
 		self:SetValue(0)
 		self.spark:Hide()
 		self.fadingOut = true
@@ -268,6 +277,11 @@ end
 function GTB:GetGroup(name)
 	argcheck(name, 1, "string")
 	return groups[name] and groups[name].obj
+end
+
+-- Returns every registered group and it's config obj
+function GTB:GetGroups()
+	return groups
 end
 
 -----------------
@@ -425,6 +439,13 @@ function GTB.SetDisplayGroup(group, name)
 	group.redirectTo = name
 end
 
+-- Gets the current display group
+function GTB.GetDisplayGroup(group)
+	assert(3, group.name and groups[group.name], string.format(L["MUST_CALL"], "SetDisplayGroup"))
+	
+	return group.redirectTo
+end
+
 -- Associate a function to call when bars fade
 function GTB.RegisterOnFade(group, handler, func)
 	argcheck(handler, 2, "table", "function", "string")
@@ -528,6 +549,7 @@ function GTB.RegisterBar(group, id, seconds, text, icon, r, g, b)
 	frame.secondsLeft = seconds
 	frame.startSeconds = seconds
 	frame.gradients = group.gradients
+	frame.groupName = group.name
 	frame.barID = id
 	
 	-- Reposition this group
@@ -549,6 +571,25 @@ function GTB.RegisterBar(group, id, seconds, text, icon, r, g, b)
 	
 	-- Register it
 	group.bars[id] = frame
+end
+
+-- Remove all bars
+function GTB.UnregisterAllBars(group)
+	assert(3, group.name and groups[group.name], string.format(L["MUST_CALL"], "UnregisteRAllBars"))
+	
+	-- Clear the used bars list
+	local totalBars = #(group.usedBars)
+	for i=totalBars, 1, -1 do
+		table.remove(group.usedBars, i)
+	end
+	
+	-- Release all the frames
+	for id, bar in pairs(group.bars) do
+		releaseFrame(bar)
+		group.bars[id] = nil
+	end
+	
+	return (totalBars > 0)
 end
 
 -- Unregistering
@@ -623,6 +664,17 @@ function GTB.SetBarIcon(group, id, icon, left, right, top, bottom)
 		end
 	else
 		frame.bar.icon:Hide()
+	end
+end
+
+-- Change it to a repeating timer
+function GTB.SetRepeatingTimer(group, id, flag)
+	argcheck(id, 2, "string", "number")
+	argcheck(flag, 3, "boolean")
+	assert(3, group.name and groups[group.name], string.format(L["MUST_CALL"], "SetRepeatingTimer"))
+	
+	if( group.bars[id] ) then
+		group.bars[id].repeating = flag
 	end
 end
 

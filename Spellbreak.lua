@@ -32,7 +32,7 @@ function Spellbreak:OnInitialize()
 
 	SML = LibStub:GetLibrary("LibSharedMedia-2.0")
 	
-	GTBLib = LibStub:GetLibrary("GTB-Alpha0.1")
+	GTBLib = LibStub:GetLibrary("GTB-Beta1")
 	GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 	GTBGroup:RegisterOnFade(self, "OnBarFade")
 	GTBGroup:SetScale(self.db.profile.scale)
