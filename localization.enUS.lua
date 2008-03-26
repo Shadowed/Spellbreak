@@ -1,6 +1,6 @@
 SpellbreakLocals = {
-	["LOCKED %s %s Spells (%d seconds)"] = "LOCKED %s %s Spells (%d seconds)",
-	["UNLOCKED %s %s Spells"] = "UNLOCKED %s %s Spells",
+	["LOCKED %s %s (%d seconds)"] = "LOCKED %s %s (%d seconds)",
+	["UNLOCKED %s %s"] = "UNLOCKED %s %s",
 	
 	["All"] = "All",
 	["Physical"] = "Physical",
@@ -49,4 +49,10 @@ SpellbreakLocals = {
 	
 	["Announce color"] = "Announce color",
 	["Color the text should be shown in if you're outputting using \"Combat text\"."] = "Color the text should be shown in if you're outputting using \"Combat text\".",
+	
+	["None"] = "None",
+	
+	["Redirection"] = "Redirection",
+	["Redirect bar timers to"] = "Redirect bar timers to",
+	["Allows you to set another bar group to send these timers to, only supports GTB based timers."] = "Allows you to set another bar group to send these timers to, only supports GTB based timers.",
 }

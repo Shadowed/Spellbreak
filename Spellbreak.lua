@@ -20,6 +20,7 @@ function Spellbreak:OnInitialize()
 			inside = {["arena"] = true, ["pvp"] = true},
 			announce = true,
 			announceDest = "1",
+			redirectTo = "",
 			announceColor = { r = 1, g = 1, b = 1 },
 		},
 	}
@@ -30,19 +31,21 @@ function Spellbreak:OnInitialize()
 	self.spells = SpellbreakLockouts
 	self.schools = SpellbreakSchools
 
-	SML = LibStub:GetLibrary("LibSharedMedia-2.0")
+	SML = LibStub:GetLibrary("LibSharedMedia-3.0")
 	
 	GTBLib = LibStub:GetLibrary("GTB-Beta1")
 	GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 	GTBGroup:RegisterOnFade(self, "OnBarFade")
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
+	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
 	
 	self:CreateAnchor()
 
 	self.SML = SML
 	self.GTBGroup = GTBGroup
-
+	self.GTBLib = GTBLib
+	
 	-- Monitor for zone change
 	self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA")
@@ -78,6 +81,7 @@ function Spellbreak:Reload()
 	
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
+	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
 	
 	self.anchor:SetWidth(self.db.profile.width)
 	self.anchor:SetScale(self.db.profile.scale)
@@ -91,12 +95,12 @@ function Spellbreak:Reload()
 	end
 end
 
-local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER or 0x00000400
-local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY or 0x00000010
-local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE or 0x00000001
-local COMBATLOG_OBJECT_AFFILIATION_PARTY = COMBATLOG_OBJECT_AFFILIATION_PARTY or 0x00000002
-local COMBATLOG_OBJECT_AFFILIATION_RAID = COMBATLOG_OBJECT_AFFILIATION_RAID or 0x00000004
-local COMBATLOG_OBJECT_REACTION_HOSTILE	= COMBATLOG_OBJECT_REACTION_HOSTILE or 0x00000040
+local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER
+local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY
+local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE
+local COMBATLOG_OBJECT_AFFILIATION_PARTY = COMBATLOG_OBJECT_AFFILIATION_PARTY
+local COMBATLOG_OBJECT_AFFILIATION_RAID = COMBATLOG_OBJECT_AFFILIATION_RAID
+local COMBATLOG_OBJECT_REACTION_HOSTILE	= COMBATLOG_OBJECT_REACTION_HOSTILE
 local GROUP_AFFILIATION = bit.bor(COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_TYPE_PLAYER, COMBATLOG_OBJECT_AFFILIATION_MINE, COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_AFFILIATION_RAID)
 
 -- Need to clean this up a bit
@@ -134,7 +138,7 @@ function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, 
 	if( not spell ) then
 		return
 	end
-	
+			
 	-- First figure out the seconds in the lockout, along with the icon to use for the school locked
 	local seconds, school, endTime
 	if( type(spell) == "number" ) then
@@ -174,10 +178,10 @@ function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, 
 	lockoutQuickMap[destGUID .. spellID] = id
 	
 	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
-	GTBGroup:RegisterBar(id, seconds, destName, school.icon)
+	GTBGroup:RegisterBar(id, seconds, string.format("%s - %s", school.text, destName), school.icon)
 	
 	if( self.db.profile.announce ) then
-		self:SendMessage(string.format(L["LOCKED %s %s Spells (%d seconds)"], destName, school.text, seconds), self.db.profile.announceDest, self.db.profile.announceColor)
+		self:SendMessage(string.format(L["LOCKED %s %s (%d seconds)"], destName, school.text, seconds), self.db.profile.announceDest, self.db.profile.announceColor)
 	end
 end
 
@@ -196,7 +200,7 @@ function Spellbreak:LockoutFaded(eventType, spellID, spellName, destGUID, destNa
 	
 	GTBGroup:UnregisterBar(id)
 	if( self.db.profile.announce ) then
-		self:SendMessage(string.format(L["UNLOCKED %s %s Spells"], destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
+		self:SendMessage(string.format(L["UNLOCKED %s %s"], destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
 	end
 end
 
@@ -210,7 +214,7 @@ function Spellbreak:OnBarFade(barID)
 
 	local currentLock = lockoutTrack[barID]
 	if( currentLock and self.db.profile.announce ) then
-		self:SendMessage(string.format(L["UNLOCKED %s %s Spells"], currentLock.destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
+		self:SendMessage(string.format(L["UNLOCKED %s %s"], currentLock.destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
 	end
 end
 
@@ -241,6 +245,12 @@ function Spellbreak:StripServer(text)
 end
 
 function Spellbreak:SendMessage(msg, dest, color)
+	if( dest == "none" ) then
+		return
+
+	end
+	
+
 	-- We're ungrouped, so redirect it to RWFrame
 	if( dest == "rw" and GetNumRaidMembers() == 0 and GetNumPartyMembers() == 0 ) then
 		dest = "1"

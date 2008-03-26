@@ -34,8 +34,11 @@ local function argcheck(value, num, ...)
 end
 
 -- GTB Library
-local framePool = GTB.framePool or {}
-local groups = GTB.groups or {}
+GTB.framePool = GTB.framePool or {}
+GTB.groups = GTB.groups or {}
+
+local framePool = GTB.framePool
+local groups = GTB.groups
 local methods = {"SetBaseColor", "EnableGradient", "SetPoint", "SetScale", "SetWidth", "SetTexture", "SetBarGrowth", "SetIconPosition", "SetTextColor",
 "SetTimerColor", "SetFadeTime", "RegisterOnFade", --[["SetTextOffset", "SetTimerOffset",]] "SetDisplayGroup", "GetDisplayGroup", "RegisterBar", "UnregisterBar", "SetRepeatingTimer", "UnregisterAllBars", "RegisterOnClick", "SetBarIcon"}
 
@@ -269,7 +272,7 @@ function GTB:RegisterGroup(name, texture, ...)
 	obj:SetBaseColor(0.0, 1.0, 0.0)
 	obj:SetTextColor(1.0, 1.0, 1.0)
 	obj:SetTimerColor(1.0, 1.0, 1.0)
-			
+		
 	return obj	
 end
 
@@ -433,7 +436,7 @@ end
 
 -- Redirect everything to the specified group
 function GTB.SetDisplayGroup(group, name)
-	argcheck(name, 2, "number")
+	argcheck(name, 2, "string", "nil")
 	assert(3, group.name and groups[group.name], string.format(L["MUST_CALL"], "SetDisplayGroup"))
 	
 	group.redirectTo = name
