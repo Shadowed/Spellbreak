@@ -33,14 +33,15 @@ function Spellbreak:OnInitialize()
 
 	SML = LibStub:GetLibrary("LibSharedMedia-3.0")
 	
+	self:CreateAnchor()
+
 	GTBLib = LibStub:GetLibrary("GTB-Beta1")
 	GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 	GTBGroup:RegisterOnFade(self, "OnBarFade")
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
 	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
-	
-	self:CreateAnchor()
+	GTBGroup:SetPoint("TOPLEFT", self.anchor, "BOTTOMLEFT", 0, 0)
 
 	self.SML = SML
 	self.GTBGroup = GTBGroup
@@ -357,8 +358,6 @@ function Spellbreak:CreateAnchor()
 	if( self.db.profile.position ) then
 		local scale = self.anchor:GetEffectiveScale()
 		self.anchor:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x * scale, self.db.profile.position.y * scale)
-		
-		GTBGroup:SetPoint("TOPLEFT", self.anchor, "BOTTOMLEFT", 0, 0)
 	else
 		self.anchor:SetPoint("CENTER", UIParent, "CENTER")
 	end

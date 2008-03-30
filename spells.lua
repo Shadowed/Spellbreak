@@ -40,14 +40,13 @@ SpellbreakLockouts = {
 	
 	-- Feral Charge
 	[19675] = 4,
-	
 
 	-- Kick
 	[1766] = 5,
 	[1767] = 5,
 	[1768] = 5,
 	[1769] = 5,
-	[36768] = 5,
+	[38768] = 5,
 
 	-- Improved Kick
 	[18425] = {removal = true, lockOut = 2, school = 0},
