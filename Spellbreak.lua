@@ -113,13 +113,13 @@ function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sou
 	if( eventType == "SPELL_AURA_APPLIED" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
 		local spellID, spellName, spellSchool, auraType = ...
 		if( auraType == "DEBUFF" ) then
-			self:ProcessLockout(eventType, spellID, spellName, spellSchool, destGUID, destName)
+			self:ProcessLockout(eventType, spellID, spellName, extraSpellSchool, sourceName, sourceGUID, destName, destGUID)
 		end
 		
 	-- Check if someone locked out a tree
 	elseif( eventType == "SPELL_INTERRUPT" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
 		local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSpellSchool = ...
-		self:ProcessLockout(eventType, spellID, spellName, extraSpellSchool, destGUID, destName)
+		self:ProcessLockout(eventType, spellID, spellName, extraSpellSchool, sourceName, sourceGUID, destName, destGUID)
 	
 	-- Check if a silence faded
 	elseif( eventType == "SPELL_AURA_REMOVED" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
