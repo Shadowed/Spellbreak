@@ -13,6 +13,8 @@ SpellbreakLocals = {
 	
 	["Spellbreak"] = "Spellbreak",
 	
+	["Earth Shock"] = "Earth Shock",
+	
 	-- Cmd
 	["Spellbreak Slash Commands"] = "Spellbreak Slash Commands",
 	["/spellbreak test - Shows 3 test bars."] = "/spellbreak test - Shows 3 test bars.",
@@ -21,6 +23,9 @@ SpellbreakLocals = {
 	-- GUI
 	["General"] = "General",
 	["Alerts"] = "Alerts",
+	
+	["Show friendly interrupt cooldowns"] = "Show friendly interrupt cooldowns",
+	["Shows how many second friendly players have on their interrupts."] = "Shows how many second friendly players have on their interrupts.",
 	
 	["Only enable inside"] = "Only enable inside",
 	["Only enable Spellbreak inside the specified areas."] = "Only enable Spellbreak inside the specified areas.",

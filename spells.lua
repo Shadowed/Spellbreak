@@ -80,3 +80,74 @@ SpellbreakLockouts = {
 	-- Improved Counterspell
 	[18469] = {removal = true, lockOut = 4, school = 0},
 }
+
+local ESLink = {linked = 25454, icon = "Interface\\Icons\\Spell_Nature_EarthShock", name = L["Earth Shock"]}
+SpellbreakCD = {
+	-- Arcane Torrent (Energy version)
+	[25046] = 120,
+	
+	-- Arcane Torrent (Mana version)
+	[28730] = 120,
+
+	-- Silence
+	[15487] = 45,
+
+	-- Silencing Shot
+	[34490] = 20,
+	
+	-- Spell Lock
+	[19244] = 24,
+	[19647] = 24,
+	
+	-- Feral Charge
+	[19675] = 15,
+
+	-- Kick
+	[1766] = 10,
+	[1767] = 10,
+	[1768] = 10,
+	[1769] = 10,
+	[38768] = 10,
+	
+	-- Pumeml
+	[6552] = 10,
+	[6554] = 10,
+	
+	-- Shield Bash
+	[72] = 12,
+	[1671] = 12,
+	[1672] = 12,
+	[29704] = 12,
+		
+	-- Earth shock
+	[8042] = 6,
+	[8044] = 6,
+	[8045] = 6,
+	[10412] = 6,
+	[10413] = 6,
+	[10414] = 6,
+	[25454] = 6,
+	
+	-- Flame shock
+	[8050] = ESLink,
+	[8052] = ESLink,
+	[8053] = ESLink,
+	[10447] = ESLink,
+	[10448] = ESLink,
+	[10448] = ESLink,
+	[25457] = ESLink,
+	[29228] = ESLink,
+
+	-- Frost shock
+	[8056] = ESLink,
+	[8058] = ESLink,
+	[10472] = ESLink,
+	[10473] = ESLink,
+	[25464] = ESLink,
+
+	-- Counterspell
+	[2139] = 24,
+
+	-- Improved Counterspell
+	[18469] = 24,
+}

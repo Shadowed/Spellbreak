@@ -69,6 +69,7 @@ function Config:CreateUI()
 	local config = {
 		{ group = L["General"], type = "groupOrder", order = 1 },
 		{ order = 1, group = L["General"], text = L["Only enable inside"], help = L["Only enable Spellbreak inside the specified areas."], type = "dropdown", list = {{"none", L["Everywhere else"]}, {"pvp", L["Battlegrounds"]}, {"arena", L["Arenas"]}, {"raid", L["Raid Instances"]}, {"party", L["Party Instances"]}}, multi = true, var = "inside"},
+		{ order = 2, group = L["General"], text = L["Show friendly interrupt cooldowns"], help = L["Shows how many second friendly players have on their interrupts."], type = "check", var = "interruptCD"},
 		{ order = 2, group = L["General"], text = L["Lock anchor"], help = L["Locks the anchor for moving the timer bar."], type = "check", var = "locked"},
 		{ order = 3, group = L["General"], format = L["Scale: %d%%"], min = 0.0, max = 2.0, default = 1.0, type = "slider", var = "scale"},
 		{ order = 4, group = L["General"], format = L["Bar size"], min = 10, max = 300, maxText = "300", minText = "10", default = 120, type = "slider", var = "width"},

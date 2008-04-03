@@ -9,16 +9,18 @@ local instanceType
 
 local lockoutTrack = {}
 local lockoutQuickMap = {}
+local cooldownList = {}
 
 function Spellbreak:OnInitialize()
 	self.defaults = {
 		profile = {
 			locked = true,
+			interruptCD = true,
 			scale = 1.0,
 			width = 180,
 			texture = "BantoBar",
 			inside = {["arena"] = true, ["pvp"] = true},
-			announce = true,
+			announce = false,
 			announceDest = "1",
 			redirectTo = "",
 			announceColor = { r = 1, g = 1, b = 1 },
@@ -30,6 +32,7 @@ function Spellbreak:OnInitialize()
 
 	self.spells = SpellbreakLockouts
 	self.schools = SpellbreakSchools
+	self.cooldowns = SpellbreakCD
 
 	SML = LibStub:GetLibrary("LibSharedMedia-3.0")
 	
@@ -96,16 +99,16 @@ function Spellbreak:Reload()
 	end
 end
 
-local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER
-local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY
 local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE
 local COMBATLOG_OBJECT_AFFILIATION_PARTY = COMBATLOG_OBJECT_AFFILIATION_PARTY
 local COMBATLOG_OBJECT_AFFILIATION_RAID = COMBATLOG_OBJECT_AFFILIATION_RAID
 local COMBATLOG_OBJECT_REACTION_HOSTILE	= COMBATLOG_OBJECT_REACTION_HOSTILE
-local GROUP_AFFILIATION = bit.bor(COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_TYPE_PLAYER, COMBATLOG_OBJECT_AFFILIATION_MINE, COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_AFFILIATION_RAID)
+local GROUP_AFFILIATION = bit.bor(COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_AFFILIATION_RAID, COMBATLOG_OBJECT_AFFILIATION_MINE)
 
--- Need to clean this up a bit
+local eventsRegistered = {["SPELL_AURA_APPLIED"] = true, ["SPELL_AURA_DISPELLED"] = true, ["SPELL_AURA_REMOVED"] = true, ["SPELL_INTERRUPT"] = true, ["SPELL_MISSED"] = true, ["SPELL_DAMAGE"] = true}
 function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags, ...)			
+	if( not eventsRegistered[eventType] ) then return end
+	
 	-- Check if an enemy gained a silence
 	if( eventType == "SPELL_AURA_APPLIED" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
 		local spellID, spellName, spellSchool, auraType = ...
@@ -125,6 +128,12 @@ function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sou
 			self:LockoutFaded(eventType, spellID, spellName, destGUID, destName)
 		end
 		
+	elseif( eventType == "SPELL_MISSED" or eventType == "SPELL_DAMAGE" ) then
+		if( bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
+			local spellID, spellName, spellSchool = ...
+			self:StartCooldown(spellID, spellName, sourceName, sourceGUID)
+		end
+
 	-- Check if a silence was dispelled
 	elseif( eventType == "SPELL_AURA_DISPELLED" and bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE ) then
 		local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSpellSchool, auraType = ...
@@ -134,12 +143,38 @@ function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sou
 	end
 end
 
-function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, destGUID, destName)
+
+function Spellbreak:StartCooldown(spellID, spellName, sourceName, sourceGUID)
+	local cooldown = self.cooldowns[spellID]
+	if( not self.db.profile.interruptCD or not cooldown or ( cooldownList[spellID .. sourceGUID] and cooldownList[spellID .. sourceGUID] > GetTime() ) ) then
+		return
+	end
+	
+	local seconds = 0
+	local icon = "Interface\\Icons\\Ability_Stealth"
+	if( type(cooldown) == "table" ) then
+		seconds = self.cooldowns[cooldown.linked]
+		icon = cooldown.icon
+		spellName = cooldown.name
+	else
+		seconds = cooldown
+		icon = select(3, GetSpellInfo(spellID))
+	end
+	
+	cooldownList[spellID .. sourceGUID] = GetTime() + seconds
+	
+	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
+	GTBGroup:RegisterBar(spellID .. sourceGUID, seconds, string.format("%s - %s (CD)", sourceName, spellName), icon)
+end
+
+function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, sourceName, sourceGUID, destName, destGUID)
 	local spell = self.spells[spellID]
 	if( not spell ) then
 		return
 	end
-			
+	
+	self:StartCooldown(spellID, spellName, sourceName, sourceGUID)
+	
 	-- First figure out the seconds in the lockout, along with the icon to use for the school locked
 	local seconds, school, endTime
 	if( type(spell) == "number" ) then
@@ -166,7 +201,6 @@ function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, 
 	-- If we already have a lockout for this school, and the time left is longer then this request, then reject it
 	local currentLock = lockoutTrack[id]
 	if( currentLock and currentLock.endTime > endTime ) then
-
 		return
 	end
 	
@@ -189,7 +223,6 @@ end
 function Spellbreak:LockoutFaded(eventType, spellID, spellName, destGUID, destName)
 	local id = lockoutQuickMap[destGUID .. spellID]
 	if( not self.spells[spellID] or not id ) then
-
 		return
 	end
 	
