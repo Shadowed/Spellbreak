@@ -163,8 +163,15 @@ function Spellbreak:StartCooldown(spellID, spellName, sourceName, sourceGUID)
 	
 	cooldownList[spellID .. sourceGUID] = GetTime() + seconds
 	
+	local text
+	if( sourceName ) then
+		text = string.format("%s - %s (CD)", sourceName, spellName)
+	else
+		text = string.format("%s (CD)", spellName)
+	end
+	
 	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
-	GTBGroup:RegisterBar(spellID .. sourceGUID, seconds, string.format("%s - %s (CD)", sourceName, spellName), icon)
+	GTBGroup:RegisterBar(spellID .. sourceGUID, seconds, text, icon)
 end
 
 function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, sourceName, sourceGUID, destName, destGUID)
