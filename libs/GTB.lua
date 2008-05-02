@@ -1,5 +1,5 @@
 local major = "GTB-Beta1"
-local minor = tonumber(string.match("$Revision: 634 $", "(%d+)") or 1)
+local minor = tonumber(string.match("$Revision: 701$", "(%d+)") or 1)
 
 assert(LibStub, string.format("%s requires LibStub.", major))
 
@@ -10,6 +10,7 @@ local L = {
 	["BAD_ARGUMENT"] = "bad argument #%d for '%s' (%s expected, got %s)",
 	["MUST_CALL"] = "You must call '%s' from a registered GTB object.",
 	["GROUP_EXISTS"] = "The group '%s' already exists.",
+	["BAD_FUNC"] = "You must pass an actual handler and function to '%s'.",
 }
 
 -- Validation for passed arguments
@@ -104,10 +105,20 @@ local function releaseFrame(frame)
 	frame.clickHandler = nil
 	frame.clickFunc = nil
 	frame.args = nil
-	frame.fadingOut = nil
 
 	-- And now readd to the frame pool
 	table.insert(framePool, frame)	
+end
+
+local function triggerFadeCallback(group, barID)
+	if( type(group.onFadeHandler) == "table" and type(group.onFadeFunc) == "string" ) then
+		group.onFadeHandler[group.onFadeFunc](group.onFadeHandler, barID)			
+	elseif( type(group.onFadeFunc) == "string" ) then
+		local func = getglobal(group.onFadeFunc)
+		getglobal(group.onFadeFunc)(barID)
+	elseif( type(group.onFadeFunc) == "function" ) then
+		group.onFadeFunc(barID)
+	end
 end
 
 -- Fadeout OnUpdate
@@ -119,6 +130,8 @@ local function fadeOnUpdate(self, elapsed)
 	-- Done fading, hide
 	if( self.fadeTime <= 0 ) then
 		groups[self.owner]:UnregisterBar(self.barID)
+
+		triggerFadeCallback(groups[self.originalOwner], self.barID)
 		return
 	end
 		
@@ -129,20 +142,10 @@ end
 local function fadeoutBar(self)
 	local group = groups[self.owner]
 	
-	if( type(group.onFadeHandler) == "table" and type(group.onFadeFunc) == "string" ) then
-		group.onFadeHandler[group.onFadeFunc](group.onFadeHandler, self.barID)			
-	elseif( type(group.onFadeFunc) == "string" ) then
-		getglobal(group.onFadeFunc)(self.barID)
-	elseif( type(group.onFadeFunc) == "function" ) then
-		group.onFadeFunc(self.barID)
-	end
-	
-	group.onFadeHandler = handler
-	group.onFadeFunc = func
-	
 	-- Don't fade at all, remove right now
 	if( group.fadeTime <= 0 ) then
 		group:UnregisterBar(self.barID)	
+		triggerFadeCallback(groups[self.originalOwner])
 		return
 	end
 	
@@ -158,7 +161,7 @@ local function barOnUpdate(self)
 	-- Check if times ran out and that we need to start fading it out
 	self.secondsLeft = self.secondsLeft - (time - self.lastUpdate)
 	self.lastUpdate = time
-	if( self.secondsLeft <= 0 and not self.fadingOut ) then
+	if( self.secondsLeft <= 0 ) then
 		-- Check if it's a repeating timer
 		local bar = groups[self.groupName].bars[self.barID]
 		if( bar.repeating ) then
@@ -170,7 +173,6 @@ local function barOnUpdate(self)
 		
 		self:SetValue(0)
 		self.spark:Hide()
-		self.fadingOut = true
 		
 		fadeoutBar(self)
 		return
@@ -215,18 +217,16 @@ end
 
 local function repositionFrames(group)
 	table.sort(group.usedBars, sortBars)
-	
-	local height = 0
-	local mod = 1
-	if( group.barGrowth == "DOWN" ) then
-		mod = -1
-	end
-	
+
 	for i, bar in pairs(group.usedBars) do
 		bar:ClearAllPoints()
 		
 		if( i > 1 ) then
-			bar:SetPoint("TOPLEFT", group.usedBars[i - 1], "BOTTOMLEFT", 0, 0)
+			if( group.barGrowth == "DOWN" ) then
+				bar:SetPoint("TOPLEFT", group.usedBars[i - 1], "BOTTOMLEFT", 0, 0)
+			else
+				bar:SetPoint("BOTTOMLEFT", group.usedBars[i - 1], "TOPLEFT", 0, 0)
+			end
 		else
 			bar:SetPoint(group.point, group.relativeFrame, group.relativePoint, group.xOff, group.yOff)
 		end
@@ -454,13 +454,20 @@ function GTB.RegisterOnFade(group, handler, func)
 	argcheck(handler, 2, "table", "function", "string")
 	argcheck(func, 2, "string", "nil")
 	
-
 	if( func ) then
+		if( not handler[func] ) then
+			error(string.format(L["BAD_FUNC"], "RegisterOnFade"), 3)
+		end
+		
 		group.onFadeHandler = handler
 		group.onFadeFunc = func
 	else
+		if( type(handler) == "string" and not getglobal(handler) ) then
+			error(string.format(L["BAD_FUNC"], "RegisterOnFade"), 3)
+		end
+
 		group.onFadeFunc = handler
-	end	
+	end
 end
 
 --------------------
@@ -477,6 +484,8 @@ function GTB.RegisterBar(group, id, seconds, text, icon, r, g, b)
 	argcheck(g, 7, "number", "nil")
 	argcheck(b, 8, "number", "nil")
 	assert(3, group.name and groups[group.name], string.format(L["MUST_CALL"], "RegisterBar"))
+	
+	local originalOwner = group.name
 	
 	-- Check if we're supposed to redirect this to another group, and that the group exists
 	if( group.redirectTo and groups[group.redirectTo] ) then
@@ -547,6 +556,7 @@ function GTB.RegisterBar(group, id, seconds, text, icon, r, g, b)
 	frame.g = g or group.baseColor.g
 	frame.b = b or group.baseColor.b
 	frame.owner = group.name
+	frame.originalOwner = originalOwner
 	frame.lastUpdate = GetTime()
 	frame.endTime = GetTime() + seconds
 	frame.secondsLeft = seconds
@@ -569,6 +579,7 @@ function GTB.RegisterBar(group, id, seconds, text, icon, r, g, b)
 	frame:SetStatusBarColor(frame.r, frame.g, frame.b)
 	frame:SetWidth(group.width)
 	frame:SetHeight(group.height)
+	frame:SetScale(group.scale)
 	frame:SetScript("OnUpdate", barOnUpdate)
 	frame:Show()
 	

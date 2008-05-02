@@ -165,9 +165,9 @@ function Spellbreak:StartCooldown(spellID, spellName, sourceName, sourceGUID)
 	
 	local text
 	if( sourceName ) then
-		text = string.format("%s - %s (CD)", sourceName, spellName)
+		text = string.format("[CD] %s - %s", sourceName, spellName)
 	else
-		text = string.format("%s (CD)", spellName)
+		text = string.format("[CD] %s", spellName)
 	end
 	
 	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
