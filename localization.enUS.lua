@@ -2,6 +2,8 @@ SpellbreakLocals = {
 	["LOCKED %s %s (%d seconds)"] = "LOCKED %s %s (%d seconds)",
 	["UNLOCKED %s %s"] = "UNLOCKED %s %s",
 	
+	["ALT + Drag to move the frame anchor."] = "ALT + Drag to move the frame anchor.",
+	
 	["All"] = "All",
 	["Physical"] = "Physical",
 	["Holy"] = "Holy",

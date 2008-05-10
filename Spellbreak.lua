@@ -105,7 +105,7 @@ local COMBATLOG_OBJECT_AFFILIATION_RAID = COMBATLOG_OBJECT_AFFILIATION_RAID
 local COMBATLOG_OBJECT_REACTION_HOSTILE	= COMBATLOG_OBJECT_REACTION_HOSTILE
 local GROUP_AFFILIATION = bit.bor(COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_AFFILIATION_RAID, COMBATLOG_OBJECT_AFFILIATION_MINE)
 
-local eventsRegistered = {["SPELL_AURA_APPLIED"] = true, ["SPELL_AURA_DISPELLED"] = true, ["SPELL_AURA_REMOVED"] = true, ["SPELL_INTERRUPT"] = true, ["SPELL_MISSED"] = true, ["SPELL_DAMAGE"] = true}
+local eventsRegistered = {["SPELL_CAST_SUCCESS"] = true, ["SPELL_AURA_APPLIED"] = true, ["SPELL_AURA_DISPELLED"] = true, ["SPELL_AURA_REMOVED"] = true, ["SPELL_INTERRUPT"] = true, ["SPELL_MISSED"] = true, ["SPELL_DAMAGE"] = true}
 function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags, ...)			
 	if( not eventsRegistered[eventType] ) then return end
 	
@@ -115,7 +115,12 @@ function Spellbreak:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sou
 		if( auraType == "DEBUFF" ) then
 			self:ProcessLockout(eventType, spellID, spellName, extraSpellSchool, sourceName, sourceGUID, destName, destGUID)
 		end
-		
+	
+	-- Check if a friendly player used an interrupt
+	elseif( eventType == "SPELL_CAST_SUCCESS" and bit.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
+		local spellID, spellName, spellSchool = ...
+		self:StartCooldown(spellID, spellName, sourceName, sourceGUID)
+	
 	-- Check if someone locked out a tree
 	elseif( eventType == "SPELL_INTERRUPT" and bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE and bit.band(sourceFlags, GROUP_AFFILIATION) > 0 ) then
 		local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSpellSchool = ...
@@ -179,8 +184,6 @@ function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, 
 	if( not spell ) then
 		return
 	end
-	
-	self:StartCooldown(spellID, spellName, sourceName, sourceGUID)
 	
 	-- First figure out the seconds in the lockout, along with the icon to use for the school locked
 	local seconds, school, endTime
@@ -247,9 +250,7 @@ end
 
 function Spellbreak:OnBarFade(barID)
 	if( not barID ) then
-		--ChatFrame1:AddMessage("NO FADE ID FOUND")
 		return
-
 	end
 	
 
@@ -288,7 +289,6 @@ end
 function Spellbreak:SendMessage(msg, dest, color)
 	if( dest == "none" ) then
 		return
-
 	end
 	
 
@@ -364,6 +364,11 @@ function Spellbreak:CreateAnchor()
 	self.anchor:SetScale(self.db.profile.scale)
 	self.anchor:EnableMouse(true)
 	self.anchor:SetMovable(true)
+	self.anchor:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+		GameTooltip:SetText(L["ALT + Drag to move the frame anchor."], nil, nil, nil, nil, 1)
+	end)
+	self.anchor:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	self.anchor:SetScript("OnMouseDown", function(self)
 		if( not Spellbreak.db.profile.locked and IsAltKeyDown() ) then
 			self.isMoving = true
