@@ -35,16 +35,20 @@ function Spellbreak:OnInitialize()
 	self.cooldowns = SpellbreakCD
 
 	SML = LibStub:GetLibrary("LibSharedMedia-3.0")
-	
-	self:CreateAnchor()
+	SML.RegisterCallback(self, "LibSharedMedia_Registered", "TextureRegistered")
 
-	GTBLib = LibStub:GetLibrary("GTB-Beta1")
+	GTBLib = LibStub:GetLibrary("GTB-1.0")
 	GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 	GTBGroup:RegisterOnFade(self, "OnBarFade")
+	GTBGroup:RegisterOnMove(self, "OnBarMove")
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
 	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
-	GTBGroup:SetPoint("TOPLEFT", self.anchor, "BOTTOMLEFT", 0, 0)
+	GTBGroup:SetAnchorVisible(not self.db.profile.locked)
+
+	if( self.db.profile.position ) then
+		GTBGroup:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x, self.db.profile.position.y)
+	end
 
 	self.SML = SML
 	self.GTBGroup = GTBGroup
@@ -86,17 +90,7 @@ function Spellbreak:Reload()
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
 	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
-	
-	self.anchor:SetWidth(self.db.profile.width)
-	self.anchor:SetScale(self.db.profile.scale)
-	
-	if( self.db.profile.locked ) then
-		self.anchor:SetAlpha(0)
-		self.anchor:EnableMouse(false)
-	else
-		self.anchor:SetAlpha(1)
-		self.anchor:EnableMouse(true)
-	end
+	GTBGroup:SetAnchorVisible(not self.db.profile.locked)
 end
 
 local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE
@@ -175,8 +169,7 @@ function Spellbreak:StartCooldown(spellID, spellName, sourceName, sourceGUID)
 		text = string.format("[CD] %s", spellName)
 	end
 	
-	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
-	GTBGroup:RegisterBar(spellID .. sourceGUID, seconds, text, icon)
+	GTBGroup:RegisterBar(spellID .. sourceGUID, text, seconds, nil, icon)
 end
 
 function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, sourceName, sourceGUID, destName, destGUID)
@@ -222,8 +215,7 @@ function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, 
 	
 	lockoutQuickMap[destGUID .. spellID] = id
 	
-	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
-	GTBGroup:RegisterBar(id, seconds, string.format("%s - %s", school.text, destName), school.icon)
+	GTBGroup:RegisterBar(id, string.format("%s - %s", school.text, destName), seconds, nil, school.icon)
 	
 	if( self.db.profile.announce ) then
 		self:SendMessage(string.format(L["LOCKED %s %s (%d seconds)"], destName, school.text, seconds), self.db.profile.announceDest, self.db.profile.announceColor)
@@ -252,7 +244,6 @@ function Spellbreak:OnBarFade(barID)
 	if( not barID ) then
 		return
 	end
-	
 
 	local currentLock = lockoutTrack[barID]
 	if( currentLock and self.db.profile.announce ) then
@@ -347,69 +338,13 @@ function Spellbreak:Print(msg)
 	DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99Spellbreak|r: " .. msg)
 end
 
+function Spellbreak:OnBarMove(parent, x, y)
+	Spellbreak.db.profile.position.x = x
+	Spellbreak.db.profile.position.y = y
+end
 
-function Spellbreak:CreateAnchor()
-	local backdrop = {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeSize = 0.6,
-			insets = {left = 1, right = 1, top = 1, bottom = 1}}
-
-	-- Create our anchor for moving the frame
-	self.anchor = CreateFrame("Frame")
-	self.anchor:SetWidth(self.db.profile.width)
-	self.anchor:SetHeight(12)
-	self.anchor:SetBackdrop(backdrop)
-	self.anchor:SetBackdropColor(0, 0, 0, 1.0)
-	self.anchor:SetBackdropBorderColor(0.75, 0.75, 0.75, 1.0)
-	self.anchor:SetClampedToScreen(true)
-	self.anchor:SetScale(self.db.profile.scale)
-	self.anchor:EnableMouse(true)
-	self.anchor:SetMovable(true)
-	self.anchor:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-		GameTooltip:SetText(L["ALT + Drag to move the frame anchor."], nil, nil, nil, nil, 1)
-	end)
-	self.anchor:SetScript("OnLeave", function() GameTooltip:Hide() end)
-	self.anchor:SetScript("OnMouseDown", function(self)
-		if( not Spellbreak.db.profile.locked and IsAltKeyDown() ) then
-			self.isMoving = true
-			self:StartMoving()
-		end
-	end)
-
-	self.anchor:SetScript("OnMouseUp", function(self)
-		if( self.isMoving ) then
-			self.isMoving = nil
-			self:StopMovingOrSizing()
-			
-			local scale = self:GetEffectiveScale()
-			local x = self:GetLeft() * scale
-			local y = self:GetTop() * scale
-		
-			if( not Spellbreak.db.profile.position ) then
-				Spellbreak.db.profile.position = {}
-			end
-			
-			Spellbreak.db.profile.position.x = x
-			Spellbreak.db.profile.position.y = y
-			
-			GTBGroup:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
-		end
-	end)	
-	
-	self.anchor.text = self.anchor:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	self.anchor.text:SetText(L["Spellbreak"])
-	self.anchor.text:SetPoint("CENTER", self.anchor, "CENTER")
-	
-	if( self.db.profile.position ) then
-		local scale = self.anchor:GetEffectiveScale()
-		self.anchor:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x * scale, self.db.profile.position.y * scale)
-	else
-		self.anchor:SetPoint("CENTER", UIParent, "CENTER")
-	end
-	
-	-- Hide anchor if locked
-	if( self.db.profile.locked ) then
-		self.anchor:SetAlpha(0)
-		self.anchor:EnableMouse(false)
+function Spellbreak:TextureRegistered(event, mediaType, key)
+	if( mediaType == SML.MediaType.STATUSBAR and Spellbreak.db.profile.texture == key ) then
+		GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 	end
 end

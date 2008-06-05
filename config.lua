@@ -16,9 +16,9 @@ function Config:OnInitialize()
 	SLASH_SPELLBREAK2 = "/spellbreaker"
 	SlashCmdList["SPELLBREAK"] = function(msg)
 		if( msg == "test" ) then
-			Spellbreak.GTBGroup:RegisterBar("test1", 5, string.format("%s - %s", Spellbreak.schools[2].text, UnitName("player")), Spellbreak.schools[2].icon)
-			Spellbreak.GTBGroup:RegisterBar("test2", 10, string.format("%s - %s", Spellbreak.schools[4].text, UnitName("player")), Spellbreak.schools[4].icon)
-			Spellbreak.GTBGroup:RegisterBar("test3", 15, string.format("%s - %s", Spellbreak.schools[8].text, UnitName("player")), Spellbreak.schools[8].icon)
+			Spellbreak.GTBGroup:RegisterBar("test1", string.format("%s - %s", Spellbreak.schools[2].text, UnitName("player")), 5, nil, Spellbreak.schools[2].icon)
+			Spellbreak.GTBGroup:RegisterBar("test2", string.format("%s - %s", Spellbreak.schools[4].text, UnitName("player")), 10, nil, Spellbreak.schools[4].icon)
+			Spellbreak.GTBGroup:RegisterBar("test3", string.format("%s - %s", Spellbreak.schools[8].text, UnitName("player")), 15, nil, Spellbreak.schools[8].icon)
 		elseif( msg == "ui" ) then
 			OptionHouse:Open("Spellbreak")
 		else
