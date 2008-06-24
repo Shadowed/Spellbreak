@@ -2,10 +2,7 @@ Spellbreak = LibStub("AceAddon-3.0"):NewAddon("Spellbreak", "AceEvent-3.0")
 
 local L = SpellbreakLocals
 
-local SML
-local GTBLib
-local GTBGroup
-local instanceType
+local SML, instanceType, GTBLib, GTBGroup
 
 local lockoutTrack = {}
 local lockoutQuickMap = {}
@@ -339,6 +336,10 @@ function Spellbreak:Print(msg)
 end
 
 function Spellbreak:OnBarMove(parent, x, y)
+	if( not Spellbreak.db.profile.position ) then
+		Spellbreak.db.profile.position = {}
+	end
+
 	Spellbreak.db.profile.position.x = x
 	Spellbreak.db.profile.position.y = y
 end
