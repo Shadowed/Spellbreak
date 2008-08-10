@@ -14,7 +14,7 @@ libs\AceEvent-3.0\AceEvent-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 libs\OptionHouse.lua
 libs\HousingAuthority.lua
-libs\GTB\GTB.xml
+libs\GTB-1.0\GTB-1.0.xml
 
 localization.enUS.lua
 localization.deDE.lua
