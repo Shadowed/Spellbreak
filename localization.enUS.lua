@@ -20,7 +20,7 @@ SpellbreakLocals = {
 	-- Cmd
 	["Spellbreak Slash Commands"] = "Spellbreak Slash Commands",
 	["/spellbreak test - Shows 3 test bars."] = "/spellbreak test - Shows 3 test bars.",
-	["/spellbreak ui - Opens the Spellbreak OptionHouse configuration."] = "/spellbreak ui - Opens the Spellbreak OptionHouse configuration.",
+	["/spellbreak ui - Opens the Spellbreak configuration."] = "/spellbreak ui - Opens the Spellbreak configuration.",
 	
 	-- GUI
 	["General"] = "General",
@@ -28,21 +28,6 @@ SpellbreakLocals = {
 	
 	["Show friendly interrupt cooldowns"] = "Show friendly interrupt cooldowns",
 	["Shows how many second friendly players have on their interrupts."] = "Shows how many second friendly players have on their interrupts.",
-	
-	["Only enable inside"] = "Only enable inside",
-	["Only enable Spellbreak inside the specified areas."] = "Only enable Spellbreak inside the specified areas.",
-	["Everywhere else"] = "Everywhere else",
-	["Battlegrounds"] = "Battlegrounds",
-	["Arenas"] = "Arenas",
-	["Raid Instances"] = "Raid Instances",
-	["Party Instances"] = "Party Instances",
-	
-	["Texture to be used for the timer bars."] = "Texture to be used for the timer bars.",
-	["Scale: %d%%"] = "Scale: %d%%",
-	["Bar size"] = "Bar size",
-	
-	["Lock anchor"] = "Lock anchor",
-	["Locks the anchor for moving the timer bar."] = "Locks the anchor for moving the timer bar.",
 	
 	["Enable alerts"] = "Enable alerts",
 	["Enables sending of lockout alerts to a set location."] = "Enables sending of lockout alerts to a set location.",
@@ -59,7 +44,40 @@ SpellbreakLocals = {
 	
 	["None"] = "None",
 	
-	["Redirection"] = "Redirection",
-	["Redirect bar timers to"] = "Redirect bar timers to",
-	["Allows you to set another bar group to send these timers to, only supports GTB based timers."] = "Allows you to set another bar group to send these timers to, only supports GTB based timers.",
+	["Show anchor"] = "Show anchor",
+	
+	["Grow display up"] = "Grow display up",
+	["Instead of adding everything from top to bottom, timers will be shown from bottom to top."] = "Instead of adding everything from top to bottom, timers will be shown from bottom to top.",
+		
+	["Redirect bars to group"] = "Redirect bars to group",
+	
+	["Display scale"] = "Display scale",
+	["Max timers"] = "Max timers",
+	["Icon position"] = "Icon position",
+	["Left"] = "Left",
+	["Right"] = "Right",
+	
+	["Everywhere else"] = "Everywhere else",
+	["Battlegrounds"] = "Battlegrounds",
+	["Arenas"] = "Arenas",
+	["Raid instances"] = "Raid instances",
+	["Party instances"] = "Party instances",
+	
+	["Enable Spellbreak inside"] = "Enable Spellbreak inside",
+	["Allows you to choose which scenarios this mod should be enabled in."] = "Allows you to choose which scenarios this mod should be enabled in.",
+	
+	["Bar display"] = "Bar display",
+	
+	["Bar color"] = "Barcolor",
+	
+	["Fade time"] = "Fade time",
+	
+	["Texture"] = "Texture",
+	["Width"] = "Width",
+	["Color"] = "Color",
+	
+	["None"] = "None",
+	["Text"] = "Text",
+	["Size"] = "Size",
+	["Font"] = "Font",
 }

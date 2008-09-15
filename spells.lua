@@ -1,3 +1,5 @@
+if( IS_WRATH_BUILD == nil ) then IS_WRATH_BUILD = (select(4, GetBuildInfo()) >= 30000) end
+
 local L = SpellbreakLocals
 
 SpellbreakSchools = {
@@ -11,28 +13,9 @@ SpellbreakSchools = {
 	[64] = {text = L["Arcane"], id = "ARCANE", icon = "Interface\\Icons\\Spell_Arcane_ArcaneTorrent"},
 }
 
-SpellbreakLockouts = {
-	-- Garrote
-	[1330] = {removal = true, lockOut = 3, school = 0},
-	
-	-- Arcane Torrent (Energy version)
-	[25046] = {removal = true, lockOut = 2, school = 0},
-	
-	-- Arcane Torrent (Mana version)
-	[28730] = {removal = true, lockOut = 2, school = 0},
-	
-	-- Deadly Throw (Rogue Arena/Honor Gloves)
+SpellbreakInterrupts = {
+	-- Deadly Throw/Maim interrupt (Druid/Rogue Arena/Honor Gloves)
 	[32747] = 3,
-
-	-- Maim (Vengeful Gladiator's Wyrmhide Gloves)
-	-- Unsure what the spellID is
-	--[22570] = 3,
-	
-	-- Silence
-	[15487] = {removal = true, lockOut = 5, school = 0},
-
-	-- Silencing Shot
-	[34490] = {removal = true, lockOut = 3, school = 0},
 	
 	-- Spell Lock
 	[19244] = 5,
@@ -47,9 +30,6 @@ SpellbreakLockouts = {
 	[1768] = 5,
 	[1769] = 5,
 	[38768] = 5,
-
-	-- Improved Kick
-	[18425] = {removal = true, lockOut = 2, school = 0},
 	
 	-- Pumeml
 	[6552] = 4,
@@ -60,10 +40,7 @@ SpellbreakLockouts = {
 	[1671] = 6,
 	[1672] = 6,
 	[29704] = 6,
-	
-	-- Improved Shield Bash
-	[18498] = {removal = true, lockOut = 3, school = 0},
-	
+		
 	-- Earthshock
 	[8042] = 2,
 	[8044] = 2,
@@ -72,17 +49,66 @@ SpellbreakLockouts = {
 	[10413] = 2,
 	[10414] = 2,
 	[25454] = 2,
+	[49230] = 2,
+	[49231] = 2,
 	
+	-- Wind Shock
+	[57994] = 2,
 
 	-- Counterspell
 	[2139] = 8,
+	
+	-- Mind Freeze
+	[47528] = 4,
+	
+	-- Throwing Specialization
+	[51680] = 3,
+}
+
+SpellbreakSilences = {
+	-- Garrote
+	[1330] = 3,
+	
+	-- Arcane Torrent (Energy version)
+	[25046] = 2,
+	
+	-- Arcane Torrent (Mana version)
+	[28730] = 2,
+	
+	-- Arcane Torrent (Runic power version)
+	[50613] = 2,
+	
+	-- Silence
+	[15487] = 5,
+
+	-- Silencing Shot
+	[34490] = 3,
+
+	-- Improved Kick
+	[18425] = 2,
+
+	-- Improved Shield Bash
+	[18498] = 3,
 
 	-- Improved Counterspell
-	[18469] = {removal = true, lockOut = 4, school = 0},
+	[18469] = 4,
+	
+	-- Strangulate
+	[47476] = 5,
+	[49913] = 5,
+	[49914] = 5,
+	[49915] = 5,
+	[49916] = 5,
+	
+	-- Gag Order (talent)
+	[18498] = 3,
 }
 
 local ESLink = {linked = 25454, icon = "Interface\\Icons\\Spell_Nature_EarthShock", name = L["Earth Shock"]}
 SpellbreakCD = {
+	-- Mind Freeze
+	[47528] = 10,
+	
 	-- Arcane Torrent (Energy version)
 	[25046] = 120,
 	
@@ -137,6 +163,8 @@ SpellbreakCD = {
 	[10448] = ESLink,
 	[25457] = ESLink,
 	[29228] = ESLink,
+	[49232] = ESLink,
+	[49233] = ESLink,
 
 	-- Frost shock
 	[8056] = ESLink,
@@ -144,6 +172,11 @@ SpellbreakCD = {
 	[10472] = ESLink,
 	[10473] = ESLink,
 	[25464] = ESLink,
+	[49235] = ESLink,
+	[49236] = ESLink,
+	
+	-- Wind Shock
+	[57994] = ESLink,
 
 	-- Counterspell
 	[2139] = 24,

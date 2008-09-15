@@ -8,18 +8,31 @@ local lockoutTrack = {}
 local lockoutQuickMap = {}
 local cooldownList = {}
 
+-- NTS: IS_WRATH_BUILD is defined in spells.lua because that loads first
+
 function Spellbreak:OnInitialize()
 	self.defaults = {
 		profile = {
-			locked = true,
+			showAnchor = false,
+			growUp = false,
 			interruptCD = true,
+			
 			scale = 1.0,
 			width = 180,
-			texture = "BantoBar",
+			maxRows = 30,
+			fontSize = 12,
+			fadeTime = 1.5,
+			
+			color = { r = 0, g = 1, b = 0 },
 			inside = {["arena"] = true, ["pvp"] = true},
+
+			redirectTo = "",
+			icon = "LEFT",
+			fontName = "Friz Quadrata TT",
+			texture = "BantoBar",
+
 			announce = false,
 			announceDest = "1",
-			redirectTo = "",
 			announceColor = { r = 1, g = 1, b = 1 },
 		},
 	}
@@ -27,25 +40,15 @@ function Spellbreak:OnInitialize()
 	self.db = LibStub:GetLibrary("AceDB-3.0"):New("SpellbreakDB", self.defaults)
 	self.revision = tonumber(string.match("$Revision: 599 $", "(%d+)") or 1)
 
-	self.spells = SpellbreakLockouts
+	self.interrupts = SpellbreakInterrupts
+	self.silences = SpellbreakSilences
 	self.schools = SpellbreakSchools
 	self.cooldowns = SpellbreakCD
 
 	SML = LibStub:GetLibrary("LibSharedMedia-3.0")
 	SML.RegisterCallback(self, "LibSharedMedia_Registered", "TextureRegistered")
-
-	GTBLib = LibStub:GetLibrary("GTB-1.0")
-	GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
-	GTBGroup:RegisterOnFade(self, "OnBarFade")
-	GTBGroup:RegisterOnMove(self, "OnBarMove")
-	GTBGroup:SetScale(self.db.profile.scale)
-	GTBGroup:SetWidth(self.db.profile.width)
-	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
-	GTBGroup:SetAnchorVisible(not self.db.profile.locked)
-
-	if( self.db.profile.position ) then
-		GTBGroup:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x, self.db.profile.position.y)
-	end
+	
+	self:Reload()
 
 	self.SML = SML
 	self.GTBGroup = GTBGroup
@@ -77,17 +80,29 @@ end
 
 function Spellbreak:Reload()
 	self:OnDisable()
+	self:OnEnable()
 
-	-- Check to see if we should enable it
-	local type = select(2, IsInInstance())
-	if( self.db.profile.inside[type] ) then
-		self:OnEnable()
+	-- Load GTB
+	if( not GTBLib and not GTBGroup ) then
+		GTBLib = LibStub:GetLibrary("GTB-1.0")
+		GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
+		GTBGroup:RegisterOnMove(self, "OnBarMove")
+		GTBGroup:RegisterOnMove(self, "OnBarFade")
 	end
 	
 	GTBGroup:SetScale(self.db.profile.scale)
 	GTBGroup:SetWidth(self.db.profile.width)
 	GTBGroup:SetDisplayGroup(self.db.profile.redirectTo ~= "" and self.db.profile.redirectTo or nil)
-	GTBGroup:SetAnchorVisible(not self.db.profile.locked)
+	GTBGroup:SetAnchorVisible(self.db.profile.showAnchor)
+	GTBGroup:SetBarGrowth(self.db.profile.growUp and "UP" or "DOWN")
+	GTBGroup:SetMaxBars(self.db.profile.maxRows)
+	GTBGroup:SetFont(SML:Fetch(SML.MediaType.FONT, self.db.profile.fontName), self.db.profile.fontSize)
+	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
+	GTBGroup:SetFadeTime(self.db.profile.fadeTime)
+	
+	if( self.db.profile.position ) then
+		GTBGroup:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x, self.db.profile.position.y)
+	end
 end
 
 local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE
@@ -170,28 +185,19 @@ function Spellbreak:StartCooldown(spellID, spellName, sourceName, sourceGUID)
 end
 
 function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, sourceName, sourceGUID, destName, destGUID)
-	local spell = self.spells[spellID]
-	if( not spell ) then
+	local seconds = self.interrupts[spellID]
+	if( not spell and not self.silences[spellID] ) then
 		return
+	
+	-- Silence, so it locks all trees
+	elseif( self.silences[spellID] ) then
+		seconds = self.silences[spellID]
+		lockedSchool = 0
 	end
 	
 	-- First figure out the seconds in the lockout, along with the icon to use for the school locked
-	local seconds, school, endTime
-	if( type(spell) == "number" ) then
-		school = self.schools[lockedSchool]
-		seconds = spell
-		endTime = GetTime() + spell
-	else
-		if( spell.school ) then
-			school = self.schools[spell.school]
-			lockedSchool = spell.school
-		else
-			school = self.schools[lockedSchool]
-		end
-
-		seconds = spell.lockOut
-		endTime = GetTime() + seconds
-	end
+	local school = self.schools[lockedSchool]
+	endTime = GetTime() + seconds
 	
 	local id = destGUID .. lockedSchool
 	if( not lockoutTrack[id] ) then
@@ -221,12 +227,11 @@ end
 
 function Spellbreak:LockoutFaded(eventType, spellID, spellName, destGUID, destName)
 	local id = lockoutQuickMap[destGUID .. spellID]
-	if( not self.spells[spellID] or not id ) then
+	if( ( not self.interrupts[spellID] and not self.silences[spellID] ) or not id ) then
 		return
 	end
 	
 	local currentLock = lockoutTrack[id]
-
 	if( not currentLock ) then
 		return
 	end
