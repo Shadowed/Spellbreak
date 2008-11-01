@@ -1,5 +1,5 @@
 local major = "GTB-1.0"
-local minor = tonumber(string.match("$Revision: 950 $", "(%d+)") or 1)
+local minor = tonumber(string.match("$Revision: 1000 $", "(%d+)") or 1)
 
 assert(LibStub, string.format("%s requires LibStub.", major))
 
@@ -174,7 +174,7 @@ local function barOnUpdate(self)
 	local seconds = self.secondsLeft - ((hour * 3600) + (minutes * 60))
 	
 	if( hour > 0 ) then
-		self.timer:SetFormattedText("%d:%02d", hour, minute)
+		self.timer:SetFormattedText("%d:%02d", hour, minutes)
 	elseif( minutes > 0 ) then
 		self.timer:SetFormattedText("%d:%02d", minutes, floor(seconds))
 	elseif( seconds < 10 ) then
@@ -441,6 +441,10 @@ function GTB.SetScale(group, scale)
 	
 	group.scale = scale
 	group.frame:SetScale(scale)
+	
+	for _, bar in pairs(group.bars) do
+		bar:SetScale(scale)
+	end
 end
 
 -- Set font/font size
@@ -526,6 +530,10 @@ function GTB.SetBaseColor(group, r, g, b)
 	group.baseColor.r = r
 	group.baseColor.g = g
 	group.baseColor.b = b
+
+	for _, bar in pairs(group.bars) do
+		bar:SetStatusBarColor(frame.startR or group.baseColor.r, frame.startG or group.baseColor.g, frame.startB or group.baseColor.b)
+	end
 end
 
 function GTB.SetBackgroundColor(group, r, g, b)
@@ -541,6 +549,14 @@ function GTB.SetBackgroundColor(group, r, g, b)
 	group.bgColor.r = r
 	group.bgColor.g = g
 	group.bgColor.b = b
+
+	for _, bar in pairs(group.bars) do
+		if( group.bgColor ) then
+			bar.bg:SetStatusBarColor(group.bgColor.r or 0.0, group.bgColor.g or 0.5, group.bgColor.b or 0.5, 0.5)
+		else
+			bar.bg:SetStatusBarColor(0.0, 0.5, 0.5, 0.5)
+		end
+	end
 end
 
 -- How many seconds we should take to fade out
@@ -664,6 +680,9 @@ function GTB.RegisterBar(group, id, text, seconds, startSeconds, icon, r, g, b)
 	frame.r = r or group.baseColor.r
 	frame.g = g or group.baseColor.g
 	frame.b = b or group.baseColor.b
+	frame.startR = r
+	frame.startG = g
+	frame.startB = b
 	frame.owner = group.name
 	frame.originalOwner = originalOwner
 	frame.lastUpdate = GetTime()

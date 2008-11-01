@@ -8,8 +8,6 @@ local lockoutTrack = {}
 local lockoutQuickMap = {}
 local cooldownList = {}
 
--- NTS: IS_WRATH_BUILD is defined in spells.lua because that loads first
-
 function Spellbreak:OnInitialize()
 	self.defaults = {
 		profile = {

@@ -1,5 +1,3 @@
-if( IS_WRATH_BUILD == nil ) then IS_WRATH_BUILD = (select(4, GetBuildInfo()) >= 30000) end
-
 local L = SpellbreakLocals
 
 SpellbreakSchools = {
