@@ -2,7 +2,7 @@
 ## Title: Spell break
 ## Notes: Tracks enemy school lockouts
 ## Author: Mayen
-## Version: $Revision: 599 $
+## Version: $Revision$
 ## SavedVariables: SpellbreakDB
 ## OptionalDeps: LibStub, GTB-1.0
 

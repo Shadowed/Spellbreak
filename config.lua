@@ -156,7 +156,7 @@ local function loadOptions()
 						order = 7,
 						type = "range",
 						name = L["Fade time"],
-						min = 0, max = 2, step = 0.01,
+						min = 0, max = 2, step = 0.1,
 					},
 					sep = {
 						order = 8,
@@ -197,19 +197,6 @@ local function loadOptions()
 				inline = true,
 				name = L["Bar display"],
 				args = {
- 					color = {
-						order = 1,
-						type = "color",
-						name = L["Bar color"],
-						set = setColor,
-						get = getColor,
-						width = "full",
-					},
-					sep = {
-						order = 4,
-						name = "",
-						type = "description",
-					},
 					width = {
 						order = 3,
 						type = "range",

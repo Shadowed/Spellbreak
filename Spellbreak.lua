@@ -19,9 +19,8 @@ function Spellbreak:OnInitialize()
 			width = 180,
 			maxRows = 30,
 			fontSize = 12,
-			fadeTime = 1.5,
+			fadeTime = 0.5,
 			
-			color = { r = 0, g = 1, b = 0 },
 			inside = {["arena"] = true, ["pvp"] = true},
 
 			redirectTo = "",
@@ -36,7 +35,7 @@ function Spellbreak:OnInitialize()
 	}
 
 	self.db = LibStub:GetLibrary("AceDB-3.0"):New("SpellbreakDB", self.defaults)
-	self.revision = tonumber(string.match("$Revision: 599 $", "(%d+)") or 1)
+	self.revision = tonumber(string.match("$Revision$", "(%d+)") or 1)
 
 	self.interrupts = SpellbreakInterrupts
 	self.silences = SpellbreakSilences
@@ -44,7 +43,7 @@ function Spellbreak:OnInitialize()
 	self.cooldowns = SpellbreakCD
 
 	SML = LibStub:GetLibrary("LibSharedMedia-3.0")
-	SML.RegisterCallback(self, "LibSharedMedia_Registered", "TextureRegistered")
+	SML.RegisterCallback(self, "LibSharedMedia_Registered", "MediaRegistered")
 	
 	self:Reload()
 
@@ -85,7 +84,7 @@ function Spellbreak:Reload()
 		GTBLib = LibStub:GetLibrary("GTB-1.0")
 		GTBGroup = GTBLib:RegisterGroup("Spellbreak", SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 		GTBGroup:RegisterOnMove(self, "OnBarMove")
-		GTBGroup:RegisterOnMove(self, "OnBarFade")
+		GTBGroup:RegisterOnFade(self, "OnBarFade")
 	end
 	
 	GTBGroup:SetScale(self.db.profile.scale)
@@ -97,6 +96,7 @@ function Spellbreak:Reload()
 	GTBGroup:SetFont(SML:Fetch(SML.MediaType.FONT, self.db.profile.fontName), self.db.profile.fontSize)
 	GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
 	GTBGroup:SetFadeTime(self.db.profile.fadeTime)
+	GTBGroup:SetIconPosition(self.db.profile.icon)
 	
 	if( self.db.profile.position ) then
 		GTBGroup:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.db.profile.position.x, self.db.profile.position.y)
@@ -260,6 +260,7 @@ function Spellbreak:ZONE_CHANGED_NEW_AREA()
 		if( self.db.profile.inside[type] ) then
 			self:OnEnable()
 		else
+			GTBGroup:UnregisterAllBars()
 			self:OnDisable()
 		end
 	end
@@ -281,7 +282,6 @@ function Spellbreak:SendMessage(msg, dest, color)
 	if( dest == "none" ) then
 		return
 	end
-	
 
 	-- We're ungrouped, so redirect it to RWFrame
 	if( dest == "rw" and GetNumRaidMembers() == 0 and GetNumPartyMembers() == 0 ) then
@@ -347,8 +347,10 @@ function Spellbreak:OnBarMove(parent, x, y)
 	Spellbreak.db.profile.position.y = y
 end
 
-function Spellbreak:TextureRegistered(event, mediaType, key)
-	if( mediaType == SML.MediaType.STATUSBAR and Spellbreak.db.profile.texture == key ) then
+function Spellbreak:MediaRegistered(event, mediaType, key)
+	if( mediaType == SML.MediaType.STATUSBAR and self.db.profile.texture == key ) then
 		GTBGroup:SetTexture(SML:Fetch(SML.MediaType.STATUSBAR, self.db.profile.texture))
+	elseif( mediaType == SML.MediaType.FONT and self.db.profile.fontName ) then
+		GTBGroup:SetFont(SML:Fetch(SML.MediaType.FONT, self.db.profile.fontName), self.db.profile.fontSize)
 	end
 end

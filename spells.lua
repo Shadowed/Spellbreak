@@ -19,9 +19,20 @@ SpellbreakInterrupts = {
 	[19244] = 5,
 	[19647] = 6,
 	
-	-- Feral Charge
+	-- Feral Charge - Bear
 	[19675] = 4,
+	
+	-- Hammer of Justice
+	[853] = 3,
+	[5588] = 3,
+	[5589] = 3,
+	[10308] = 3,
 
+	-- Bash
+	[5211] = 3,
+	[6798] = 3,
+	[8983] = 3,
+	
 	-- Kick
 	[1766] = 5,
 	[1767] = 5,
@@ -104,6 +115,17 @@ SpellbreakSilences = {
 
 local ESLink = {linked = 25454, icon = "Interface\\Icons\\Spell_Nature_EarthShock", name = L["Earth Shock"]}
 SpellbreakCD = {
+	-- Bash
+	[5211] = 60,
+	[6798] = 60,
+	[8983] = 60,
+
+	-- Hammer of Justice
+	[853] = 60,
+	[5588] = 60,
+	[5589] = 60,
+	[10308] = 60,
+
 	-- Mind Freeze
 	[47528] = 10,
 	
