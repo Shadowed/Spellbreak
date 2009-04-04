@@ -123,6 +123,12 @@ local function loadOptions()
 						type = "toggle",
 						name = L["Show anchor"],
 						desc = L["Instead of adding everything from top to bottom, timers will be shown from bottom to top."],
+						width = "full",
+					},
+					cooldown = {
+						order = 0.5,
+						type = "toggle",
+						name = L["Enable interrupt cooldowns"],
 					},
 					growUp = {
 						order = 1,
@@ -190,6 +196,32 @@ local function loadOptions()
 						get = getMulti,
 					},
 				}
+			},
+			announce = {
+				order = 1.5,
+				type = "group",
+				inline = true,
+				name = L["Announcements"],
+				args = {
+					announce = {
+						order = 1,
+						type = "toggle",
+						name = L["Enable announcements"],
+						width = "full",
+					},
+					announceColor = {
+						order = 2,
+						type = "color",
+						name = L["Color"],
+						width = "full",
+					},
+					announceDest = {
+						order = 3,
+						type = "select",
+						name = L["Destination"],
+						values = {["none"] = L["None"], ["ct"] = L["Combat text"], ["party"] = L["Party"], ["raid"] = L["Raid"], ["rw"] = L["Raid warning"], ["rwframe"] = L["Middle of screen"], ["1"] = string.format(L["Chat frame #%d"], 1), ["2"] = string.format(L["Chat frame #%d"], 2), ["3"] = string.format(L["Chat frame #%d"], 3), ["4"] = string.format(L["Chat frame #%d"], 4), ["5"] = string.format(L["Chat frame #%d"], 5), ["6"] = string.format(L["Chat frame #%d"], 6), ["7"] = string.format(L["Chat frame #%d"], 7)},
+					},
+				},
 			},
 			bar = {
 				order = 2,

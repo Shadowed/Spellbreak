@@ -13,7 +13,7 @@ function Spellbreak:OnInitialize()
 		profile = {
 			showAnchor = false,
 			growUp = false,
-			interruptCD = true,
+			cooldown = true,
 			
 			scale = 1.0,
 			width = 180,
@@ -155,7 +155,7 @@ end
 
 function Spellbreak:StartCooldown(spellID, spellName, sourceName, sourceGUID)
 	local cooldown = self.cooldowns[spellID]
-	if( not self.db.profile.interruptCD or not cooldown or ( cooldownList[spellID .. sourceGUID] and cooldownList[spellID .. sourceGUID] > GetTime() ) ) then
+	if( not self.db.profile.cooldown or not cooldown or ( cooldownList[spellID .. sourceGUID] and cooldownList[spellID .. sourceGUID] > GetTime() ) ) then
 		return
 	end
 	
@@ -237,6 +237,7 @@ function Spellbreak:LockoutFaded(eventType, spellID, spellName, destGUID, destNa
 		return
 	end
 	
+	lockoutTrack[id] = nil
 	GTBGroup:UnregisterBar(id)
 	if( self.db.profile.announce ) then
 		self:SendMessage(string.format(L["UNLOCKED %s %s"], destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
@@ -250,6 +251,7 @@ function Spellbreak:OnBarFade(barID)
 
 	local currentLock = lockoutTrack[barID]
 	if( currentLock and self.db.profile.announce ) then
+		lockoutTrack[barID] = nil
 		self:SendMessage(string.format(L["UNLOCKED %s %s"], currentLock.destName, self.schools[currentLock.lockedSchool].text), self.db.profile.announceDest, self.db.profile.announceColor)
 	end
 end

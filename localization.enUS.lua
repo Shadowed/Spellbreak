@@ -29,9 +29,13 @@ SpellbreakLocals = {
 	["Show friendly interrupt cooldowns"] = "Show friendly interrupt cooldowns",
 	["Shows how many second friendly players have on their interrupts."] = "Shows how many second friendly players have on their interrupts.",
 	
+	["Enable announcements"] = "Enable announcements",
+	["Color"] = "Color",
+	["Destination"] = "Destination",
+	["Enable interrupt cooldowns"] = "Enable interrupt cooldowns",
 	["Enable alerts"] = "Enable alerts",
 	["Enables sending of lockout alerts to a set location."] = "Enables sending of lockout alerts to a set location.",
-	
+	["Announcements"] = "Announcements",
 	["Announce channel"] = "Announce channel",
 	["Channel to send school lockouts to."] = "Channel to send school lockouts to.",
 	["Combat Text"] = "Combat Text",
