@@ -184,14 +184,17 @@ end
 
 function Spellbreak:ProcessLockout(eventType, spellID, spellName, lockedSchool, sourceName, sourceGUID, destName, destGUID)
 	local seconds = self.interrupts[spellID]
-	if( not spell and not self.silences[spellID] ) then
-		return
 	
+	if( not seconds and not self.silences[spellID] ) then
+		return
+		
 	-- Silence, so it locks all trees
 	elseif( self.silences[spellID] ) then
 		seconds = self.silences[spellID]
 		lockedSchool = 0
 	end
+	
+	lockedSchool = lockedSchool or 0
 	
 	-- First figure out the seconds in the lockout, along with the icon to use for the school locked
 	local school = self.schools[lockedSchool]
